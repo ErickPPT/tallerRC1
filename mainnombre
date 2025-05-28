@@ -1,0 +1,234 @@
+#include <stdio.h>
+#include <string.h>
+#include <limits.h>
+#define MAX_PRODUCTS   5
+#define LONGITUD   10000
+#define MAX_RECURSOS 5
+
+/* Prototipos */
+void mostrarMenu(void);
+void agregarProducto(void);
+int  buscarProducto(const char *nombre);
+void editarProducto(void);
+void eliminarProducto(void);
+void calcularTotales(void);
+void verificarFactibilidad(void);
+int ingresoDatos(char *mensaje, int max, int min);
+
+char nombres[MAX_PRODUCTS][LONGITUD];
+int cantidades[MAX_PRODUCTS] ;  
+int tiempos[MAX_PRODUCTS];
+int recursos[MAX_PRODUCTS] [MAX_RECURSOS];
+int variedadRecursos[MAX_PRODUCTS] = {0};
+char nombreRecursos[][MAX_RECURSOS][LONGITUD];
+char mensaje[LONGITUD];
+int totalProductos = 0;
+int totalRecursos = 0;
+int variedadRecurso = 0;
+
+/* Función para ingresar datos numéricos */
+int ingresoDatos(char* mensaje, int max, int min) {
+    int valor;
+    printf("%s", mensaje);
+    while (scanf("%d", &valor) != 1 || valor < min || valor > max) {
+        printf("Error, ingrese datos válidos\n");
+        while (getchar() != '\n');
+        printf("%s", mensaje);
+    }
+    while (getchar() != '\n'); // limpiar Enter que queda en el buffer
+    return valor;
+}
+
+/* Muestra las opciones disponibles */
+void mostrarMenu(void) {
+    printf("\n=== MENU FABRICA DE COMPONENTES ELECTRONICOS ===\n");
+    printf("Elige opcion: \n");
+    printf("1. Agregar producto\n");
+    printf("2. Editar producto\n");
+    printf("3. Eliminar producto\n");
+    printf("4. Calcular tiempo y recursos totales\n");
+    printf("5. Verificar factibilidad\n");
+    printf("0. Salir\n\n");
+}
+
+/* Agrega un nuevo producto al arreglo */
+void agregarProducto(void) {
+    if (totalProductos >= MAX_PRODUCTS) {
+        printf("Capacidad máxima de productos alcanzada.\n");
+        return;
+    }
+
+    printf("Nombre del producto: ");
+        fgets(nombres[totalProductos], LONGITUD, stdin);
+        nombres[totalProductos][strcspn(nombres[totalProductos], "\n")] = '\0';
+        printf("Nombre ingresado: '%s'\n", nombres[totalProductos]);
+        variedadRecurso= ingresoDatos("Cantidad de recursos que necesita este producto: ", MAX_RECURSOS, 1);
+        variedadRecursos[totalProductos] = variedadRecurso;
+        cantidades[totalProductos] = ingresoDatos("Cantidad demandada: ", 1000, 1);
+        tiempos[totalProductos] = ingresoDatos("Tiempo por unidad (min): ", 1000, 1);
+        for (int i = 0; i < variedadRecurso; i++)
+        {
+            char mensaje[LONGITUD+50];
+            sprintf(mensaje, "Ingrese el nombre del recurso %d", i+1);
+            fgets(nombreRecursos[totalProductos][i], LONGITUD, stdin);
+            nombreRecursos[totalProductos][i][strcspn(nombreRecursos[totalProductos][i], "\n")] = '\0';
+        }
+        
+        for (int i = 0; i < variedadRecurso; i++) {
+            sprintf(mensaje, "Ingrese la cantidad que se necesita del recurso #%d: ", i + 1);
+            recursos[totalProductos][i] = ingresoDatos(mensaje, 500, 1);
+        }
+
+    totalProductos++;
+    printf("Total productos: %d\n", totalProductos);
+    for (int i = 0; i < totalProductos; i++) {
+        printf("Producto %d: '%s'\n", i + 1, nombres[i]);
+    }
+    printf("Producto agregado.\n");
+}
+
+/* Busca un producto por nombre */
+int buscarProducto(const char *nombre) {
+    for (int i = 0; i < totalProductos; i++) {
+        if (strcmp(nombres[i], nombre) == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+/* Edita datos de un producto existente */
+void editarProducto(void) {
+    char nombreBuscado[LONGITUD];
+    printf("Nombre del producto a editar: ");
+    fgets(nombreBuscado, LONGITUD, stdin);
+    nombreBuscado[strcspn(nombreBuscado, "\n")] = '\0';
+
+    int idx = buscarProducto(nombreBuscado);
+    if (idx < 0) {
+        printf("No se encontró el producto.\n");
+        return;
+    }
+
+    cantidades[idx] = ingresoDatos("Nueva cantidad demandada: ", 5, 1);
+    tiempos[idx] = ingresoDatos("Nuevo tiempo por unidad (min): ", 1000, 1);
+    variedadRecurso= ingresoDatos("Cantidad de recursos que necesita este producto: ", MAX_RECURSOS, 1);
+    variedadRecursos[idx] = variedadRecurso;
+    for (int i = 0; i < variedadRecurso; i++)
+        {
+            char mensaje[LONGITUD+50];
+            sprintf(mensaje, "Ingrese el nombre del recurso %d", i+1);
+            fgets(nombreRecursos[idx][i], LONGITUD, stdin);
+            nombreRecursos[idx][i][strcspn(nombreRecursos[totalProductos][i], "\n")] = '\0';
+        }
+    for (int i = 0; i < variedadRecursos[idx]; i++)
+    {
+        sprintf(mensaje, "Nueva cantidad del recurso %d: ", i + 1);
+        recursos[idx][i] = ingresoDatos(mensaje, 500, 0);
+    }
+    
+    printf("Producto actualizado.\n");
+}
+
+/* Elimina un producto desplazando los elementos posteriores */
+void eliminarProducto(void) {
+    char nombreBuscado[LONGITUD];
+    printf("Nombre del producto a eliminar: ");
+    fgets(nombreBuscado, LONGITUD, stdin);
+    nombreBuscado[strcspn(nombreBuscado, "\n")] = '\0';
+
+    printf("DEBUG: Nombre ingresado para eliminar: '%s'\n", nombreBuscado);
+    for (int i = 0; i < totalProductos; i++) {
+        printf("DEBUG: Producto %d: '%s'\n", i + 1, nombres[i]);
+    }
+
+    int idx = buscarProducto(nombreBuscado);
+    if (idx < 0) {
+        printf("No se encontró el producto.\n");
+        return;
+    }
+
+    for (int i = idx; i < totalProductos - 1; i++) {
+        strcpy(nombres[i], nombres[i + 1]);
+        cantidades[i] = cantidades[i + 1];
+        tiempos[i] = tiempos[i + 1];
+        variedadRecursos[i] = variedadRecursos[i + 1];
+        for (int j = 0; j < variedadRecursos[i]; j++) {
+            recursos[i][j] = recursos[i + 1][j];
+        }
+    }
+
+    totalProductos--;
+    printf("Producto eliminado.\n");
+}
+
+/* Calcula y muestra el tiempo total y recursos totales */
+void calcularTotales(void) {
+    long tiempoTotal = 0, recursoTotal = 0;
+    for (int i = 0; i < totalProductos; i++) {
+        tiempoTotal += (long)cantidades[i] * tiempos[i];
+        for (int j = 0; j < variedadRecursos[i]; j++)
+        {
+            recursoTotal = (long)cantidades[i] * recursos[i][j];
+            printf("Producto: %s\n", nombres[i]);
+            printf("Cantidad del recurso %d requeridos: %ld unidades\n", j+1, recursoTotal);
+        }
+        
+    }
+
+    printf("Tiempo total requerido: %ld minutos\n", tiempoTotal);
+    
+}
+
+/* Verifica si la demanda es factible según límites dados */
+void verificarFactibilidad(void) {
+    long tiempoTotal = 0;
+    long recursoTotal = 0;
+    int limiteTiempo;
+    int limiteRecursos[MAX_PRODUCTS][MAX_RECURSOS];
+    int factible = 1;
+    for (int i = 0; i < totalProductos; i++) {
+        tiempoTotal += (long)cantidades[i] * tiempos[i];
+    }
+    limiteTiempo = ingresoDatos("Limite de tiempo disponible (min): ", 1000, 1);
+   if (tiempoTotal > limiteTiempo){
+    printf("Falta tiempo: necesita %ld más minutos\n", tiempoTotal - limiteTiempo);
+    factible = 0;}
+    for (int i = 0; i < totalProductos; i++)
+    {
+        for (int j = 0; j < variedadRecursos[i]; j++)
+        {
+            sprintf(mensaje, "Ingrese la cantidad disponible del recurso %d: ", j + 1);
+            limiteRecursos[i][j] = ingresoDatos(mensaje, 1000, 1);
+            recursoTotal = (long)cantidades[i] * recursos[i][j];
+            if (recursoTotal > limiteRecursos[i][j]){
+                factible = 0; 
+                printf("El recurso %d no tiene la suficiente cantidad disponible. Necesita %ld mas unidades\n", j+1, recursoTotal - limiteRecursos[i][j]);} }
+    if (factible)
+    {
+        printf("Factible, se puede cumplir la demanda con respecto a los recursos y el tiempo del producti %d.\n", i+1);
+    } else {
+        printf("No es factible, no se puede cumplir la demanda con respecto a los recursos y el tiempo del producti %d.\n", i+1);
+    }}}
+
+int main(void) {
+    int opcion;
+    do {
+        mostrarMenu();
+        
+        scanf("%d", &opcion);
+        getchar();  // limpiar buffer
+
+        switch (opcion) {
+            case 1: agregarProducto(); break;
+            case 2: editarProducto(); break;
+            case 3: eliminarProducto(); break;
+            case 4: calcularTotales(); break;
+            case 5: verificarFactibilidad(); break;
+            case 0: printf("Saliendo...\n"); break;
+            default: printf("Opción no válida\n");
+        }
+    } while (opcion != 0);
+
+    return 0;
+}
