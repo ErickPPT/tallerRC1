@@ -41,6 +41,17 @@ int ingresoDatos(char* mensaje, int max, int min) {
     return valor;
 }
 
+void mostrarInventarioRestante(int limiteRecursos[MAX_PRODUCTS][MAX_RECURSOS]) {
+    printf("\nInventario restante por recurso:\n");
+    for (int i = 0; i < totalProductos; i++) {
+        printf("Producto: %s\n", nombres[i]);
+        for (int j = 0; j < variedadRecursos[i]; j++) {
+            long consumido = (long)cantidades[i] * recursos[i][j];
+            int restante = limiteRecursos[i][j] - consumido;
+            printf("  Recurso '%s': %d unidades restantes\n", nombreRecursos[i][j], restante);
+        }
+    }
+}
 /* Muestra las opciones disponibles */
 void mostrarMenu(void) {
     printf("\n=== MENU FABRICA DE COMPONENTES ELECTRONICOS ===\n");
@@ -181,7 +192,7 @@ void verificarFactibilidad(void) {
     for (int i = 0; i < totalProductos; i++) {
         tiempoTotal += (long)cantidades[i] * tiempos[i];
     }
-    limiteTiempo = ingresoDatos("Limite de tiempo disponible (min): ", 1000, 1);
+    limiteTiempo = ingresoDatos("Limite de tiempo disponible (min): ", 10000, 1);
     if (tiempoTotal > limiteTiempo){
         printf("Falta tiempo: necesita %ld más minutos\n", tiempoTotal - limiteTiempo);
         factible = 0;
@@ -203,6 +214,7 @@ void verificarFactibilidad(void) {
         }
         factible = 1; // Reiniciar para el siguiente producto
     }
+    mostrarInventarioRestante(limiteRecursos);
 }
 
 int main(void) {
